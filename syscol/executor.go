@@ -22,14 +22,32 @@ import (
     "github.com/jimlawless/cfg"
     "github.com/mesos/mesos-go/executor"
     mesos "github.com/mesos/mesos-go/mesosproto"
-//    "github.com/stealthly/go_kafka_client"
     "github.com/stealthly/siesta"
-    "time"
+    "encoding/json"
 )
 
+type ExecutorContext struct {
+    Config *config
+    Hostname string
+    Port int
+}
+
+func ReadExecutorContext(task *mesos.TaskInfo) *ExecutorContext {
+    ctx := new(ExecutorContext)
+    Logger.Debugf("Task data: %s", string(task.GetData()))
+    err := json.Unmarshal(task.GetData(), ctx)
+    if err != nil {
+        Logger.Critical(err)
+        os.Exit(1)
+    }
+    *Config = *ctx.Config
+
+    return ctx
+}
+
 type Executor struct {
-//    server *StatsDServer
-    Host   string
+    reporter *MetricsReporter
+    config *ExecutorContext
 }
 
 func (e *Executor) Registered(driver executor.ExecutorDriver, executor *mesos.ExecutorInfo, framework *mesos.FrameworkInfo, slave *mesos.SlaveInfo) {
@@ -47,7 +65,7 @@ func (e *Executor) Disconnected(executor.ExecutorDriver) {
 func (e *Executor) LaunchTask(driver executor.ExecutorDriver, task *mesos.TaskInfo) {
     Logger.Infof("[LaunchTask] %s", task)
 
-    Config.Read(task)
+    e.config = ReadExecutorContext(task)
 
 //    transformFunc, exists := transformFunctions[Config.Transform]
 //    if !exists {
@@ -57,11 +75,11 @@ func (e *Executor) LaunchTask(driver executor.ExecutorDriver, task *mesos.TaskIn
 //
 //    transformSerializer := e.serializer(Config.Transform)
 //
-//    producer, err := e.newProducer(transformSerializer) //create producer before sending the running status
-//    if err != nil {
-//        Logger.Errorf("Failed to create producer: %s", err)
-//        os.Exit(1)
-//    }
+    producer, err := e.newProducer(siesta.StringSerializer) //create producer before sending the running status
+    if err != nil {
+        Logger.Errorf("Failed to create producer: %s", err)
+        os.Exit(1)
+    }
 
     runStatus := &mesos.TaskStatus{
         TaskId: task.GetTaskId(),
@@ -74,9 +92,9 @@ func (e *Executor) LaunchTask(driver executor.ExecutorDriver, task *mesos.TaskIn
     }
 
     go func() {
-//        e.server = NewStatsDServer("0.0.0.0:8125", producer, transformFunc, e.Host) //TODO I know we want to listen to 8125 only in our case but still this should be configurable
-//        e.server.Start()
-        time.Sleep(1 * time.Minute)
+        //TODO configs should come from scheduler
+        e.reporter = NewMetricsReporter(task.GetSlaveId().GetValue(), e.config.Hostname, e.config.Port, Config.ReportingInterval, producer, Config.Topic)
+        e.reporter.Start()
 
         // finish task
         Logger.Infof("Finishing task %s", task.GetName())
@@ -94,7 +112,7 @@ func (e *Executor) LaunchTask(driver executor.ExecutorDriver, task *mesos.TaskIn
 
 func (e *Executor) KillTask(driver executor.ExecutorDriver, id *mesos.TaskID) {
     Logger.Infof("[KillTask] %s", id.GetValue())
-//    e.server.Stop()
+    e.reporter.Stop()
 }
 
 func (e *Executor) FrameworkMessage(driver executor.ExecutorDriver, message string) {
@@ -103,7 +121,7 @@ func (e *Executor) FrameworkMessage(driver executor.ExecutorDriver, message stri
 
 func (e *Executor) Shutdown(driver executor.ExecutorDriver) {
     Logger.Infof("[Shutdown]")
-//    e.server.Stop()
+    e.reporter.Stop()
 }
 
 func (e *Executor) Error(driver executor.ExecutorDriver, message string) {

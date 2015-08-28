@@ -35,6 +35,7 @@ var sched *Scheduler // This is needed for HTTP server to be able to update this
 type Scheduler struct {
     httpServer *HttpServer
     cluster    *Cluster
+    slaveState *State
     active     bool
     activeLock sync.Mutex
     driver     scheduler.SchedulerDriver
@@ -55,6 +56,7 @@ func (s *Scheduler) Start() error {
     go s.httpServer.Start()
 
     s.cluster = NewCluster()
+    s.slaveState = NewState(Config.Master)
 
     frameworkInfo := &mesos.FrameworkInfo{
         User:       proto.String(Config.User),
@@ -210,7 +212,19 @@ func (s *Scheduler) launchTask(driver scheduler.SchedulerDriver, offer *mesos.Of
         Value: proto.String(fmt.Sprintf("%s-%s", taskName, uuid())),
     }
 
-    data, err := json.Marshal(Config)
+    slaveInfo := s.slaveState.GetSlaveInfo(offer.GetSlaveId().GetValue())
+    if slaveInfo == nil {
+        Logger.Error("Could not get slave information from master, declining offer")
+        driver.DeclineOffer(offer.GetId(), &mesos.Filters{RefuseSeconds: proto.Float64(1)})
+        return
+    }
+
+    context := &ExecutorContext{
+        Config: Config,
+        Hostname: slaveInfo.Hostname,
+        Port: slaveInfo.Port,
+    }
+    data, err := json.Marshal(context)
     if err != nil {
         panic(err) //shouldn't happen
     }
@@ -234,12 +248,12 @@ func (s *Scheduler) launchTask(driver scheduler.SchedulerDriver, offer *mesos.Of
 }
 
 func (s *Scheduler) createExecutor(slave string) *mesos.ExecutorInfo {
-    id := fmt.Sprintf("slave-%s", slave)
+    id := fmt.Sprintf("syscol-%s", slave)
     return &mesos.ExecutorInfo{
         ExecutorId: util.NewExecutorID(id),
         Name:       proto.String(id),
         Command: &mesos.CommandInfo{
-            Value: proto.String(fmt.Sprintf("./%s --log.level %s --host %s", Config.Executor, Config.LogLevel, slave)),
+            Value: proto.String(fmt.Sprintf("./%s --log.level %s", Config.Executor, Config.LogLevel)),
             Uris: []*mesos.CommandInfo_URI{
                 &mesos.CommandInfo_URI{
                     Value:      proto.String(fmt.Sprintf("%s/resource/%s", Config.Api, Config.Executor)),

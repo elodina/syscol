@@ -22,6 +22,7 @@ import (
     mesos "github.com/mesos/mesos-go/mesosproto"
     "os"
     "regexp"
+    "time"
 )
 
 var Logger log.LoggerInterface
@@ -31,6 +32,7 @@ var Config *config = &config{
     FrameworkRole: "*",
     Cpus:          0.1,
     Mem:           64,
+    ReportingInterval: 1 * time.Second,
     Transform:     "none",
     LogLevel:      "info",
 }
@@ -45,6 +47,7 @@ type config struct {
     User               string
     Cpus               float64
     Mem                float64
+    ReportingInterval  time.Duration
     Executor           string
     ProducerProperties string
     Topic              string
@@ -79,12 +82,13 @@ framework role:      %s
 user:                %s
 cpus:                %.2f
 mem:                 %.2f
+reporting interval:  %s
 executor:            %s
 producer properties: %s
 topic:               %s
 transform:           %s
 log level:           %s
-`, c.Api, c.Master, c.FrameworkName, c.FrameworkRole, c.User, c.Cpus, c.Mem,
+`, c.Api, c.Master, c.FrameworkName, c.FrameworkRole, c.User, c.Cpus, c.Mem, c.ReportingInterval,
     c.Executor, c.ProducerProperties, c.Topic, c.Transform, c.LogLevel)
 }
 
