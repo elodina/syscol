@@ -16,63 +16,63 @@ limitations under the License. */
 package syscol
 
 import (
-    "fmt"
-    mesos "github.com/mesos/mesos-go/mesosproto"
-    "sync"
+	"fmt"
+	mesos "github.com/mesos/mesos-go/mesosproto"
+	"sync"
 )
 
 type Cluster struct {
-    tasks    map[string]*mesos.TaskInfo
-    taskLock sync.Mutex
+	tasks    map[string]*mesos.TaskInfo
+	taskLock sync.Mutex
 }
 
 func NewCluster() *Cluster {
-    return &Cluster{
-        tasks: make(map[string]*mesos.TaskInfo),
-    }
+	return &Cluster{
+		tasks: make(map[string]*mesos.TaskInfo),
+	}
 }
 
 func (c *Cluster) Exists(slave string) bool {
-    c.taskLock.Lock()
-    defer c.taskLock.Unlock()
+	c.taskLock.Lock()
+	defer c.taskLock.Unlock()
 
-    _, exists := c.tasks[slave]
-    return exists
+	_, exists := c.tasks[slave]
+	return exists
 }
 
 func (c *Cluster) Add(slave string, task *mesos.TaskInfo) {
-    c.taskLock.Lock()
-    defer c.taskLock.Unlock()
+	c.taskLock.Lock()
+	defer c.taskLock.Unlock()
 
-    if _, exists := c.tasks[slave]; exists {
-        // this should never happen. would mean a bug if so
-        panic(fmt.Sprintf("syscol task on slave %s already exists", slave))
-    }
+	if _, exists := c.tasks[slave]; exists {
+		// this should never happen. would mean a bug if so
+		panic(fmt.Sprintf("syscol task on slave %s already exists", slave))
+	}
 
-    c.tasks[slave] = task
+	c.tasks[slave] = task
 }
 
 func (c *Cluster) Remove(slave string) {
-    c.taskLock.Lock()
-    defer c.taskLock.Unlock()
+	c.taskLock.Lock()
+	defer c.taskLock.Unlock()
 
-    if _, exists := c.tasks[slave]; !exists {
-        fmt.Println(c.tasks)
-        // this should never happen. would mean a bug if so
-        panic(fmt.Sprintf("syscol task on slave %s does not exist", slave))
-    }
+	if _, exists := c.tasks[slave]; !exists {
+		fmt.Println(c.tasks)
+		// this should never happen. would mean a bug if so
+		panic(fmt.Sprintf("syscol task on slave %s does not exist", slave))
+	}
 
-    delete(c.tasks, slave)
+	delete(c.tasks, slave)
 }
 
 func (c *Cluster) GetAllTasks() []*mesos.TaskInfo {
-    c.taskLock.Lock()
-    defer c.taskLock.Unlock()
+	c.taskLock.Lock()
+	defer c.taskLock.Unlock()
 
-    tasks := make([]*mesos.TaskInfo, 0)
-    for _, task := range c.tasks {
-        tasks = append(tasks, task)
-    }
+	tasks := make([]*mesos.TaskInfo, 0)
+	for _, task := range c.tasks {
+		tasks = append(tasks, task)
+	}
 
-    return tasks
+	return tasks
 }

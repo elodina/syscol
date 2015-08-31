@@ -16,107 +16,145 @@ limitations under the License. */
 package syscol
 
 import (
-    "net/http"
-    "io/ioutil"
-    "encoding/json"
-    "fmt"
-    "time"
-    "github.com/stealthly/siesta"
+	"encoding/json"
+	"fmt"
+	"github.com/stealthly/siesta"
+	"github.com/stealthly/syscol/avro"
+	"io/ioutil"
+	"net/http"
+	"time"
+)
+
+const (
+	TransformNone = "none"
+	TransformAvro = "avro"
 )
 
 type SlaveMetrics struct {
-    SlaveID string
-    Hostname string
-    Port int
-    Timestamp int64
-    Metrics map[string]interface{}
+	SlaveID   string
+	Hostname  string
+	Port      int32
+	Timestamp int64
+	Metrics   map[string]interface{}
 }
 
 type MetricsReporter struct {
-    slaveID string
-    host string
-    port int
-    reportingInterval time.Duration
-    producer *siesta.KafkaProducer
-    topic string
+	slaveID           string
+	host              string
+	port              int32
+	reportingInterval time.Duration
+	producer          *siesta.KafkaProducer
+	topic             string
+	transform         func(map[string]interface{}) interface{}
 
-    stop chan struct{}
+	stop chan struct{}
 }
 
-func NewMetricsReporter(slaveID string, host string, port int, reportingInterval time.Duration, producer *siesta.KafkaProducer, topic string) *MetricsReporter {
-    return &MetricsReporter{
-        slaveID: slaveID,
-        host: host,
-        port: port,
-        reportingInterval: reportingInterval,
-        producer: producer,
-        topic: topic,
-        stop: make(chan struct{}),
-    }
+func NewMetricsReporter(slaveID string, host string, port int32, reportingInterval time.Duration, producer *siesta.KafkaProducer, topic string, transform string) *MetricsReporter {
+	reporter := &MetricsReporter{
+		slaveID:           slaveID,
+		host:              host,
+		port:              port,
+		reportingInterval: reportingInterval,
+		producer:          producer,
+		topic:             topic,
+		stop:              make(chan struct{}),
+	}
+
+	reporter.transform = reporter.transformNone
+	if transform == TransformAvro {
+		reporter.transform = reporter.transformAvro
+	}
+
+	return reporter
 }
 
 func (mr *MetricsReporter) Start() {
-    Logger.Debug("Starting metrics reporter")
-    tick := time.NewTicker(mr.reportingInterval)
+	Logger.Debug("Starting metrics reporter")
+	tick := time.NewTicker(mr.reportingInterval)
 
-    go func() {
-        for meta := range mr.producer.RecordsMetadata {
-            _ = meta
-        }
-    }() //TODO this should be done better
+	go func() {
+		for meta := range mr.producer.RecordsMetadata {
+			Logger.Tracef("Received record metadata: topic %s, partition %d, offset %d, error %s", meta.Topic, meta.Partition, meta.Offset, meta.Error)
+		}
+	}()
 
-    for {
-        select {
-        case <-tick.C: {
-            metrics, err := mr.GetMetrics()
-            if err != nil {
-                Logger.Errorf("Error while getting metrics: %s", err)
-            }
+	for {
+		select {
+		case <-tick.C:
+			{
+				metrics, err := mr.GetMetrics()
+				if err != nil {
+					Logger.Errorf("Error while getting metrics: %s", err)
+				}
 
-            slaveMetrics := &SlaveMetrics{
-                SlaveID: mr.slaveID,
-                Hostname: mr.host,
-                Port: mr.port,
-                Timestamp: time.Now().UnixNano(),
-                Metrics: metrics,
-            }
+				slaveMetrics := mr.transform(metrics)
 
-            metricsBytes, err := json.Marshal(slaveMetrics)
-            if err != nil {
-                Logger.Errorf("Error while marshalling metrics: %s", err)
-            }
-
-            mr.producer.Send(&siesta.ProducerRecord{Topic: mr.topic, Value: string(metricsBytes)})
-        }
-        case <-mr.stop: break
-        }
-    }
-
-    tick.Stop()
+				mr.producer.Send(&siesta.ProducerRecord{Topic: mr.topic, Value: slaveMetrics})
+			}
+		case <-mr.stop:
+			{
+				tick.Stop()
+				return
+			}
+		}
+	}
 }
 
 func (mr *MetricsReporter) Stop() {
-    Logger.Debug("Stopping metrics reporter")
-    mr.stop <- struct{}{}
+	Logger.Debug("Stopping metrics reporter")
+	mr.stop <- struct{}{}
 }
 
 func (mr *MetricsReporter) GetMetrics() (map[string]interface{}, error) {
-    metrics := make(map[string]interface{})
+	metrics := make(map[string]interface{})
 
-    response, err := http.Get(fmt.Sprintf("http://%s:%d/metrics/snapshot", mr.host, mr.port))
-    if err != nil {
-        return metrics, err
-    }
+	response, err := http.Get(fmt.Sprintf("http://%s:%d/metrics/snapshot", mr.host, mr.port))
+	if err != nil {
+		return metrics, err
+	}
 
-    responseBody, err := ioutil.ReadAll(response.Body)
-    if err != nil {
-        return metrics, err
-    }
+	responseBody, err := ioutil.ReadAll(response.Body)
+	if err != nil {
+		return metrics, err
+	}
 
-    err = json.Unmarshal(responseBody, &metrics)
-    if err != nil {
-        return metrics, err
-    }
+	err = json.Unmarshal(responseBody, &metrics)
+	if err != nil {
+		return metrics, err
+	}
 
-    return metrics, nil
+	return metrics, nil
+}
+
+func (mr *MetricsReporter) transformNone(metrics map[string]interface{}) interface{} {
+	slaveMetrics := &SlaveMetrics{
+		SlaveID:   mr.slaveID,
+		Hostname:  mr.host,
+		Port:      mr.port,
+		Timestamp: time.Now().UnixNano(),
+		Metrics:   metrics,
+	}
+
+	metricsBytes, err := json.Marshal(slaveMetrics)
+	if err != nil {
+		Logger.Errorf("Error while marshalling metrics: %s", err)
+	}
+
+	return string(metricsBytes)
+}
+
+func (mr *MetricsReporter) transformAvro(metrics map[string]interface{}) interface{} {
+	metricsBytes, err := json.Marshal(metrics)
+	if err != nil {
+		Logger.Errorf("Error while marshalling metrics: %s", err)
+	}
+
+	return &avro.SlaveMetrics{
+		SlaveID:   mr.slaveID,
+		Hostname:  mr.host,
+		Port:      mr.port,
+		Timestamp: time.Now().UnixNano(),
+		Metrics:   metricsBytes,
+	}
 }

@@ -16,106 +16,106 @@ limitations under the License. */
 package syscol
 
 import (
-    "encoding/json"
-    "fmt"
-    "net/http"
-    "net/url"
-    "strings"
+	"encoding/json"
+	"fmt"
+	"net/http"
+	"net/url"
+	"strings"
 
-    mesos "github.com/mesos/mesos-go/mesosproto"
+	mesos "github.com/mesos/mesos-go/mesosproto"
 )
 
 type HttpServer struct {
-    address string
+	address string
 }
 
 func NewHttpServer(address string) *HttpServer {
-    if strings.HasPrefix(address, "http://") {
-        address = address[len("http://"):]
-    }
-    return &HttpServer{
-        address: address,
-    }
+	if strings.HasPrefix(address, "http://") {
+		address = address[len("http://"):]
+	}
+	return &HttpServer{
+		address: address,
+	}
 }
 
 func (hs *HttpServer) Start() {
-    http.HandleFunc("/resource/", serveFile)
-    http.HandleFunc("/api/start", handleStart)
-    http.HandleFunc("/api/stop", handleStop)
-    http.HandleFunc("/api/update", handleUpdate)
-    http.HandleFunc("/api/status", handleStatus)
-    http.ListenAndServe(hs.address, nil)
+	http.HandleFunc("/resource/", serveFile)
+	http.HandleFunc("/api/start", handleStart)
+	http.HandleFunc("/api/stop", handleStop)
+	http.HandleFunc("/api/update", handleUpdate)
+	http.HandleFunc("/api/status", handleStatus)
+	http.ListenAndServe(hs.address, nil)
 }
 
 func serveFile(w http.ResponseWriter, r *http.Request) {
-    resourceTokens := strings.Split(r.URL.Path, "/")
-    resource := resourceTokens[len(resourceTokens)-1]
-    http.ServeFile(w, r, resource)
+	resourceTokens := strings.Split(r.URL.Path, "/")
+	resource := resourceTokens[len(resourceTokens)-1]
+	http.ServeFile(w, r, resource)
 }
 
 func handleStart(w http.ResponseWriter, r *http.Request) {
-    if Config.CanStart() {
-        sched.SetActive(true)
-        respond(true, "Servers started", w)
-    } else {
-        respond(false, "producer.properties and topic must be set before starting. schema.registry.url must be set for avro transform.", w)
-    }
+	if Config.CanStart() {
+		sched.SetActive(true)
+		respond(true, "Servers started", w)
+	} else {
+		respond(false, "producer.properties and topic must be set before starting. schema.registry.url must be set for avro transform.", w)
+	}
 }
 
 func handleStop(w http.ResponseWriter, r *http.Request) {
-    sched.SetActive(false)
-    respond(true, "Servers stopped", w)
+	sched.SetActive(false)
+	respond(true, "Servers stopped", w)
 }
 
 func handleUpdate(w http.ResponseWriter, r *http.Request) {
-    queryParams := r.URL.Query()
-    setConfig(queryParams, "producer.properties", &Config.ProducerProperties)
-    setConfig(queryParams, "topic", &Config.Topic)
-    setConfig(queryParams, "transform", &Config.Transform)
-    setConfig(queryParams, "schema.registry.url", &Config.SchemaRegistryUrl)
+	queryParams := r.URL.Query()
+	setConfig(queryParams, "producer.properties", &Config.ProducerProperties)
+	setConfig(queryParams, "topic", &Config.Topic)
+	setConfig(queryParams, "transform", &Config.Transform)
+	setConfig(queryParams, "schema.registry.url", &Config.SchemaRegistryUrl)
 
-    Logger.Infof("Scheduler configuration updated: \n%s", Config)
-    respond(true, "Configuration updated", w)
+	Logger.Infof("Scheduler configuration updated: \n%s", Config)
+	respond(true, "Configuration updated", w)
 }
 
 func handleStatus(w http.ResponseWriter, r *http.Request) {
-    tasks := sched.cluster.GetAllTasks()
-    response := "cluster:\n"
-    for host, task := range tasks {
-        response += fmt.Sprintf("  server: %s", host)
-        response += fmt.Sprintf("    id: %s", task.GetTaskId())
-        response += fmt.Sprintf("    slave id: %s", task.GetSlaveId())
-        for _, resource := range task.GetResources() {
-            switch *resource.Type {
-                case mesos.Value_SCALAR:
-                response += fmt.Sprintf("    %s: %s", resource.GetName(), resource.GetScalar())
-                case mesos.Value_RANGES:
-                response += fmt.Sprintf("    %s: %s", resource.GetName(), resource.GetRanges())
-                case mesos.Value_SET:
-                response += fmt.Sprintf("    %s: %s", resource.GetName(), resource.GetSet())
-            }
-        }
-    }
-    respond(true, response, w)
+	tasks := sched.cluster.GetAllTasks()
+	response := "cluster:\n"
+	for host, task := range tasks {
+		response += fmt.Sprintf("  server: %d\n", host)
+		response += fmt.Sprintf("    id: %s\n", task.GetTaskId().GetValue())
+		response += fmt.Sprintf("    slave id: %s\n", task.GetSlaveId().GetValue())
+		for _, resource := range task.GetResources() {
+			switch *resource.Type {
+			case mesos.Value_SCALAR:
+				response += fmt.Sprintf("    %s: %f\n", resource.GetName(), resource.GetScalar().GetValue())
+			case mesos.Value_RANGES:
+				response += fmt.Sprintf("    %s: %s\n", resource.GetName(), resource.GetRanges())
+			case mesos.Value_SET:
+				response += fmt.Sprintf("    %s: %s\n", resource.GetName(), resource.GetSet())
+			}
+		}
+	}
+	respond(true, response, w)
 }
 
 func setConfig(queryParams url.Values, name string, config *string) {
-    value := queryParams.Get(name)
-    if value != "" {
-        *config = value
-    }
+	value := queryParams.Get(name)
+	if value != "" {
+		*config = value
+	}
 }
 
 func respond(success bool, message string, w http.ResponseWriter) {
-    response := NewApiResponse(success, message)
-    bytes, err := json.Marshal(response)
-    if err != nil {
-        panic(err) //this shouldn't happen
-    }
-    if success {
-        w.WriteHeader(200)
-    } else {
-        w.WriteHeader(500)
-    }
-    w.Write(bytes)
+	response := NewApiResponse(success, message)
+	bytes, err := json.Marshal(response)
+	if err != nil {
+		panic(err) //this shouldn't happen
+	}
+	if success {
+		w.WriteHeader(200)
+	} else {
+		w.WriteHeader(500)
+	}
+	w.Write(bytes)
 }

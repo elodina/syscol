@@ -16,66 +16,66 @@ limitations under the License. */
 package syscol
 
 import (
-    "encoding/json"
-    "fmt"
-    log "github.com/cihub/seelog"
-    mesos "github.com/mesos/mesos-go/mesosproto"
-    "os"
-    "regexp"
-    "time"
+	"encoding/json"
+	"fmt"
+	log "github.com/cihub/seelog"
+	mesos "github.com/mesos/mesos-go/mesosproto"
+	"os"
+	"regexp"
+	"time"
 )
 
 var Logger log.LoggerInterface
 
 var Config *config = &config{
-    FrameworkName: "syscol",
-    FrameworkRole: "*",
-    Cpus:          0.1,
-    Mem:           64,
-    ReportingInterval: 1 * time.Second,
-    Transform:     "none",
-    LogLevel:      "info",
+	FrameworkName:     "syscol",
+	FrameworkRole:     "*",
+	Cpus:              0.1,
+	Mem:               64,
+	ReportingInterval: 1 * time.Second,
+	Transform:         "none",
+	LogLevel:          "info",
 }
 
 var executorMask = regexp.MustCompile("executor.*")
 
 type config struct {
-    Api                string
-    Master             string
-    FrameworkName      string
-    FrameworkRole      string
-    User               string
-    Cpus               float64
-    Mem                float64
-    ReportingInterval  time.Duration
-    Executor           string
-    ProducerProperties string
-    Topic              string
-    Transform          string // none, avro, proto
-    SchemaRegistryUrl  string
-    LogLevel           string
+	Api                string
+	Master             string
+	FrameworkName      string
+	FrameworkRole      string
+	User               string
+	Cpus               float64
+	Mem                float64
+	ReportingInterval  time.Duration
+	Executor           string
+	ProducerProperties string
+	Topic              string
+	Transform          string // none, avro, proto
+	SchemaRegistryUrl  string
+	LogLevel           string
 }
 
 func (c *config) CanStart() bool {
-//    if c.Transform == TransformAvro && c.SchemaRegistryUrl == "" {
-//        return false
-//    }
-    return c.ProducerProperties != "" && c.Topic != ""
+	if c.Transform == TransformAvro && c.SchemaRegistryUrl == "" {
+		return false
+	}
+	return c.ProducerProperties != "" && c.Topic != ""
 }
 
 func (c *config) Read(task *mesos.TaskInfo) {
-    config := new(config)
-    Logger.Debugf("Task data: %s", string(task.GetData()))
-    err := json.Unmarshal(task.GetData(), config)
-    if err != nil {
-        Logger.Critical(err)
-        os.Exit(1)
-    }
-    *c = *config
+	config := new(config)
+	Logger.Debugf("Task data: %s", string(task.GetData()))
+	err := json.Unmarshal(task.GetData(), config)
+	if err != nil {
+		Logger.Critical(err)
+		os.Exit(1)
+	}
+	*c = *config
 }
 
 func (c *config) String() string {
-    return fmt.Sprintf(`api:                 %s
+	return fmt.Sprintf(`api:                 %s
 master:              %s
 framework name:      %s
 framework role:      %s
@@ -89,11 +89,11 @@ topic:               %s
 transform:           %s
 log level:           %s
 `, c.Api, c.Master, c.FrameworkName, c.FrameworkRole, c.User, c.Cpus, c.Mem, c.ReportingInterval,
-    c.Executor, c.ProducerProperties, c.Topic, c.Transform, c.LogLevel)
+		c.Executor, c.ProducerProperties, c.Topic, c.Transform, c.LogLevel)
 }
 
 func InitLogging(level string) error {
-    config := fmt.Sprintf(`<seelog minlevel="%s">
+	config := fmt.Sprintf(`<seelog minlevel="%s">
     <outputs formatid="main">
         <console />
     </outputs>
@@ -103,9 +103,9 @@ func InitLogging(level string) error {
     </formats>
 </seelog>`, level)
 
-    logger, err := log.LoggerFromConfigAsBytes([]byte(config))
-    Config.LogLevel = level
-    Logger = logger
+	logger, err := log.LoggerFromConfigAsBytes([]byte(config))
+	Config.LogLevel = level
+	Logger = logger
 
-    return err
+	return err
 }

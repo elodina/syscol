@@ -1,0 +1,26 @@
+{
+    "type": "record",
+    "name": "SlaveMetrics",
+    "fields": [
+        {
+            "name": "SlaveID",
+            "type": "string"
+        },
+        {
+            "name": "Hostname",
+            "type": "string"
+        },
+        {
+            "name": "Port",
+            "type": "int"
+        },
+        {
+            "name": "Timestamp",
+            "type": "long"
+        },
+        {
+            "name": "Metrics",
+            "type": "bytes"
+        }
+    ]
+}

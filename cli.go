@@ -141,7 +141,7 @@ func handleUpdate() error {
 	flag.StringVar(&api, "api", "", "Binding host:port for http/artifact server. Optional if SM_API env is set.")
 	flag.StringVar(&syscol.Config.ProducerProperties, "producer.properties", "", "Producer.properties file name.")
 	flag.StringVar(&syscol.Config.Topic, "topic", "", "Topic to produce data to.")
-	flag.StringVar(&syscol.Config.Transform, "transform", "", "Transofmation to apply to each metric. none|avro|proto")
+	flag.StringVar(&syscol.Config.Transform, "transform", "", "Transofmation to apply to each metric. none|avro")
 	flag.StringVar(&syscol.Config.SchemaRegistryUrl, "schema.registry.url", "", "Avro Schema Registry url for transform=avro")
 
 	flag.Parse()
