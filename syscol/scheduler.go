@@ -51,7 +51,7 @@ func (s *Scheduler) Start() error {
 		return err
 	}
 
-	s.httpServer = NewHttpServer(Config.Api)
+	s.httpServer = NewHttpServer(Config.Listen)
 	go s.httpServer.Start()
 
 	s.cluster = NewCluster()
