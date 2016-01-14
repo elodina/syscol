@@ -15,9 +15,9 @@
             "type": "int"
         },
         {
-			"name": "Namespace",
-			"type": "string"
-		},
+            "name": "Namespace",
+            "type": "string"
+        },
         {
             "name": "Timestamp",
             "type": "long"
