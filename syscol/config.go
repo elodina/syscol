@@ -54,6 +54,7 @@ type config struct {
 	Topic              string
 	Transform          string // none, avro, proto
 	SchemaRegistryUrl  string
+	Namespace          string
 	LogLevel           string
 }
 
@@ -88,9 +89,10 @@ executor:            %s
 producer properties: %s
 topic:               %s
 transform:           %s
+namespace:           %s
 log level:           %s
 `, c.Api, c.Master, c.FrameworkName, c.FrameworkRole, c.User, c.Cpus, c.Mem, c.ReportingInterval,
-		c.Executor, c.ProducerProperties, c.Topic, c.Transform, c.LogLevel)
+		c.Executor, c.ProducerProperties, c.Topic, c.Transform, c.Namespace, c.LogLevel)
 }
 
 func InitLogging(level string) error {

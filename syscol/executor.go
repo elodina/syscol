@@ -70,7 +70,7 @@ func (e *Executor) LaunchTask(driver executor.ExecutorDriver, task *mesos.TaskIn
 
 	go func() {
 		//TODO configs should come from scheduler
-		e.reporter = NewMetricsReporter(task.GetSlaveId().GetValue(), e.slaveInfo.GetHostname(), e.slaveInfo.GetPort(), Config.ReportingInterval, producer, Config.Topic, Config.Transform)
+		e.reporter = NewMetricsReporter(task.GetSlaveId().GetValue(), e.slaveInfo.GetHostname(), e.slaveInfo.GetPort(), Config.Namespace, Config.ReportingInterval, producer, Config.Topic, Config.Transform)
 		e.reporter.Start()
 
 		// finish task

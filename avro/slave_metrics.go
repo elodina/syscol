@@ -6,6 +6,7 @@ type SlaveMetrics struct {
 	SlaveID   string
 	Hostname  string
 	Port      int32
+	Namespace string
 	Timestamp int64
 	Metrics   []byte
 }
@@ -40,6 +41,10 @@ var _SlaveMetrics_schema, _SlaveMetrics_schema_err = avro.ParseSchema(`{
         {
             "name": "Port",
             "type": "int"
+        },
+        {
+            "name": "Namespace",
+            "type": "string"
         },
         {
             "name": "Timestamp",
