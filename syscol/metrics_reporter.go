@@ -34,6 +34,7 @@ type SlaveMetrics struct {
 	SlaveID   string
 	Hostname  string
 	Port      int32
+	Namespace string
 	Timestamp int64
 	Metrics   map[string]interface{}
 }
@@ -42,6 +43,7 @@ type MetricsReporter struct {
 	slaveID           string
 	host              string
 	port              int32
+	namespace         string
 	reportingInterval time.Duration
 	producer          *siesta.KafkaProducer
 	topic             string
@@ -50,11 +52,12 @@ type MetricsReporter struct {
 	stop chan struct{}
 }
 
-func NewMetricsReporter(slaveID string, host string, port int32, reportingInterval time.Duration, producer *siesta.KafkaProducer, topic string, transform string) *MetricsReporter {
+func NewMetricsReporter(slaveID string, host string, port int32, namespace string, reportingInterval time.Duration, producer *siesta.KafkaProducer, topic string, transform string) *MetricsReporter {
 	reporter := &MetricsReporter{
 		slaveID:           slaveID,
 		host:              host,
 		port:              port,
+		namespace:         namespace,
 		reportingInterval: reportingInterval,
 		producer:          producer,
 		topic:             topic,
@@ -132,6 +135,7 @@ func (mr *MetricsReporter) transformNone(metrics map[string]interface{}) interfa
 		SlaveID:   mr.slaveID,
 		Hostname:  mr.host,
 		Port:      mr.port,
+		Namespace: mr.namespace,
 		Timestamp: time.Now().UnixNano(),
 		Metrics:   metrics,
 	}
@@ -154,6 +158,7 @@ func (mr *MetricsReporter) transformAvro(metrics map[string]interface{}) interfa
 		SlaveID:   mr.slaveID,
 		Hostname:  mr.host,
 		Port:      mr.port,
+		Namespace: mr.namespace,
 		Timestamp: time.Now().UnixNano(),
 		Metrics:   metricsBytes,
 	}
