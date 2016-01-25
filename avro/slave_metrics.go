@@ -1,6 +1,6 @@
 package avro
 
-import "github.com/stealthly/go-avro"
+import "github.com/elodina/go-avro"
 
 type SlaveMetrics struct {
 	SlaveID   string

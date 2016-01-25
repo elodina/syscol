@@ -22,8 +22,8 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/elodina/syscol/syscol"
 	"github.com/mesos/mesos-go/executor"
-	"github.com/stealthly/syscol/syscol"
 )
 
 var logLevel = flag.String("log.level", "info", "Log level. trace|debug|info|warn|error|critical. Defaults to info.")

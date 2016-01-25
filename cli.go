@@ -19,7 +19,7 @@ import (
 	"errors"
 	"flag"
 	"fmt"
-	"github.com/stealthly/syscol/syscol"
+	"github.com/elodina/syscol/syscol"
 	"os"
 )
 
