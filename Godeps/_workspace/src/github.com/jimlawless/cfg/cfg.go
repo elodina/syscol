@@ -71,7 +71,7 @@ func Load(filename string, dest map[string]string) error {
 	f.Close()
 	str := string(buff)
 	if !strings.HasSuffix(str, "\n") {
-		return errors.New("Config file does not end with a newline character.")
+		str += "\n"
 	}
 	s2 := re.FindAllString(str, -1)
 
