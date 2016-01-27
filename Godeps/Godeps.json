@@ -12,8 +12,8 @@
 		},
 		{
 			"ImportPath": "github.com/elodina/go-avro",
-			"Comment": "v0.1.0.0-42-g9e3567c",
-			"Rev": "9e3567cefe72605318d7dd537c7f3f4d31cfbbf2"
+			"Comment": "v0.1.0.0-43-g82176dd",
+			"Rev": "82176ddaa8b7e54eb4512e252abb34c33dee3c16"
 		},
 		{
 			"ImportPath": "github.com/elodina/go-kafka-avro",
@@ -21,8 +21,8 @@
 		},
 		{
 			"ImportPath": "github.com/elodina/siesta",
-			"Comment": "v0.1.0.0-76-gca43fb0",
-			"Rev": "ca43fb086b34d9ed7bb7d6f6eb6dc1a5f72eab68"
+			"Comment": "v0.1.0.0-80-g973ad9e",
+			"Rev": "973ad9e9701fbedc1dae7e94fd83663b3ddb2662"
 		},
 		{
 			"ImportPath": "github.com/gogo/protobuf/proto",
