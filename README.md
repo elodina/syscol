@@ -10,7 +10,7 @@ Install godep https://github.com/tools/godep
 
 Clone and build the project
 
-    # git clone https://github.com/stealthly/syscol.git
+    # git clone https://github.com/elodina/syscol.git
     # cd syscol
     # godep restore
     # go build .

@@ -18,8 +18,8 @@ package syscol
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/stealthly/siesta"
-	"github.com/stealthly/syscol/avro"
+	"github.com/elodina/siesta"
+	"github.com/elodina/syscol/avro"
 	"io/ioutil"
 	"net/http"
 	"time"
