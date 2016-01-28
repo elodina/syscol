@@ -51,7 +51,7 @@ func (s *Scheduler) Start() error {
 		return err
 	}
 
-	s.httpServer = NewHttpServer(Config.Listen)
+	s.httpServer = NewHttpServer(s.listenAddr())
 	go s.httpServer.Start()
 
 	s.cluster = NewCluster()
@@ -259,6 +259,20 @@ func (s *Scheduler) slaveFromTaskId(taskId string) string {
 	slave = slave[:len(slave)-37] //strip uuid part
 	Logger.Debugf("Slave ID extracted from %s is %s", taskId, slave)
 	return slave
+}
+
+func (s *Scheduler) listenAddr() string {
+	address := Config.Api
+	if strings.HasPrefix(address, "http://") {
+		address = address[len("http://"):]
+	}
+
+	colonIndex := strings.LastIndex(address, ":")
+	if colonIndex != -1 {
+		address = "0.0.0.0" + address[colonIndex:]
+	}
+
+	return address
 }
 
 func (s *Scheduler) resolveDeps() error {

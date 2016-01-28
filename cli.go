@@ -86,13 +86,11 @@ func handleStatus() error {
 
 func handleScheduler() error {
 	var api string
-	var listen string
 	var user string
 	var logLevel string
 
 	flag.StringVar(&syscol.Config.Master, "master", "", "Mesos Master addresses.")
 	flag.StringVar(&api, "api", "", "Binding host:port for http/artifact server. Optional if SM_API env is set.")
-	flag.StringVar(&listen, "listen", "0.0.0.0:9898", "Bootstrap binding host:port for http/artifact server. Optional if SM_API env is set.")
 	flag.StringVar(&user, "user", "", "Mesos user. Defaults to current system user")
 	flag.StringVar(&logLevel, "log.level", syscol.Config.LogLevel, "Log level. trace|debug|info|warn|error|critical. Defaults to info.")
 	flag.StringVar(&syscol.Config.FrameworkName, "framework.name", syscol.Config.FrameworkName, "Framework name.")
@@ -102,10 +100,6 @@ func handleScheduler() error {
 	flag.Parse()
 
 	if err := resolveApi(api); err != nil {
-		return err
-	}
-
-	if err := resolveListen(listen); err != nil {
 		return err
 	}
 
@@ -181,18 +175,4 @@ func resolveApi(api string) error {
 	}
 
 	return errors.New("Undefined API url. Please provide either a CLI --api option or SM_API env.")
-}
-
-func resolveListen(listen string) error {
-	if listen != "" {
-		syscol.Config.Listen = listen
-		return nil
-	}
-
-	if os.Getenv("SM_LISTEN") != "" {
-		syscol.Config.Listen = os.Getenv("SM_LISTEN")
-		return nil
-	}
-
-	return errors.New("Undefined LISTEN url. Please provide either a CLI --listen option or SM_LISTEN env.")
 }
