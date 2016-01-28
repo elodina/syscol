@@ -40,7 +40,6 @@ var Config *config = &config{
 var executorMask = regexp.MustCompile("executor.*")
 
 type config struct {
-	Listen             string
 	Api                string
 	Master             string
 	FrameworkName      string
