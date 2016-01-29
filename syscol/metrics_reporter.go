@@ -18,7 +18,7 @@ package syscol
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/elodina/siesta"
+	"github.com/elodina/siesta-producer"
 	"github.com/elodina/syscol/avro"
 	"io/ioutil"
 	"net/http"
@@ -45,14 +45,14 @@ type MetricsReporter struct {
 	port              int32
 	namespace         string
 	reportingInterval time.Duration
-	producer          *siesta.KafkaProducer
+	producer          *producer.KafkaProducer
 	topic             string
 	transform         func(map[string]interface{}) interface{}
 
 	stop chan struct{}
 }
 
-func NewMetricsReporter(slaveID string, host string, port int32, namespace string, reportingInterval time.Duration, producer *siesta.KafkaProducer, topic string, transform string) *MetricsReporter {
+func NewMetricsReporter(slaveID string, host string, port int32, namespace string, reportingInterval time.Duration, producer *producer.KafkaProducer, topic string, transform string) *MetricsReporter {
 	reporter := &MetricsReporter{
 		slaveID:           slaveID,
 		host:              host,
@@ -93,7 +93,7 @@ func (mr *MetricsReporter) Start() {
 
 				slaveMetrics := mr.transform(metrics)
 
-				mr.producer.Send(&siesta.ProducerRecord{Topic: mr.topic, Value: slaveMetrics})
+				mr.producer.Send(&producer.ProducerRecord{Topic: mr.topic, Value: slaveMetrics})
 			}
 		case <-mr.stop:
 			{
